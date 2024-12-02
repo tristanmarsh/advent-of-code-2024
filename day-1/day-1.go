@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -11,39 +12,57 @@ import (
 	"strings"
 )
 
-// Given two lists of integers, sort ascending and calculate the difference between corresponding elements in each list
+var partFlag = flag.Int("part", 1, "Part 1 or 2")
+
 func main() {
-	listsFile := loadListFile()
+	flag.Parse()
+	switch *partFlag {
+	case 1:
+		part1()
+	case 2:
+		part2()
+	default:
+		part1()
+	}
+}
+
+// Given two lists of integers:
+// - sort ascending
+// - calculate the difference between corresponding elements in each list
+// - sum the list of differences
+func part1() {
+	fmt.Println("Part 1")
+	listsFile := loadInputFile()
 	listA, listB := extractListsFromFile(listsFile)
 
 	intListA := stringListToIntList(listA)
 	intListB := stringListToIntList(listB)
-	fmt.Println("Lists")
-	fmt.Println("A: ", intListA)
-	fmt.Println("B: ", intListB)
 
 	sort.Ints(intListA)
 	sort.Ints(intListB)
-	fmt.Println("\nSorted")
-	fmt.Println("A: ", intListA)
-	fmt.Println("B: ", intListB)
 
 	distanceList := getDistanceList(intListA, intListB)
 
-	fmt.Println("\nDistances\n")
-	fmt.Println("D: ", distanceList)
-
-	// fmt.Println("\nRaw:")
-	// printIntSlice(distanceList)
-
 	sum := sumIntegers(distanceList)
-	fmt.Println("\nSum:")
 	fmt.Println(sum)
-
 }
 
-func loadListFile() (list string) {
-	file, err := os.ReadFile("lists.txt")
+// Given two lists of integers:
+// derive a "similarity score" by summing the product of
+// each id in the left list, by it's number of occurances in the right list
+func part2() {
+	listsFile := loadInputFile()
+	listA, listB := extractListsFromFile(listsFile)
+	intListA := stringListToIntList(listA)
+	intListB := stringListToIntList(listB)
+
+	listASimilarity := getListSimilarity(intListA, intListB)
+	fmt.Println("Part 2")
+	fmt.Println(listASimilarity)
+}
+
+func loadInputFile() (list string) {
+	file, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,6 +75,9 @@ func extractListsFromFile(listsFile string) (listA []string, listB []string) {
 
 	for _, line := range lines {
 		matches := numberRegex.FindAllString(line, -1)
+		if len(matches) != 2 {
+			log.Fatal("Invalid input file format. Expected 2 integers per line.")
+		}
 		listA = append(listA, matches[0])
 		listB = append(listB, matches[1])
 	}
@@ -87,8 +109,20 @@ func sumIntegers(list []int) (sum int) {
 	return
 }
 
-func printIntSlice(list []int) {
-	for _, x := range list {
-		fmt.Println(x)
+func getListSimilarity(a []int, b []int) (similarityScore int) {
+	for _, id := range a {
+		count := getIdCount(id, b)
+		idScore := count * id
+		similarityScore = similarityScore + idScore
 	}
+	return
+}
+
+func getIdCount(id int, ids []int) (similarity int) {
+	for _, i := range ids {
+		if i == id {
+			similarity++
+		}
+	}
+	return
 }
