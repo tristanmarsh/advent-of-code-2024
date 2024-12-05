@@ -35,11 +35,17 @@ func part1() {
 	fmt.Println(result)
 }
 
+// Consider the `do()` and `don't()` strings found through corrupted string.
+// Find only the sum of the mul function calls that are not disabled by the `don't()` string.
 func part2() {
 	fmt.Println("Part 2")
 	input := loadInput()
-	extractMulCommands(input)
-	result := 0
+	validMulCommands := extractValidMulCommands(input)
+	fmt.Println(validMulCommands)
+	mulCalls := extractMulCommands(validMulCommands)
+	mulArguments := extractArgumentPairs(mulCalls)
+	mulResults := processMulCalls(mulArguments)
+	result := sumIntArray(mulResults)
 	fmt.Println(result)
 }
 
@@ -49,6 +55,25 @@ func loadInput() string {
 		log.Panic(err)
 	}
 	return string(file)
+}
+
+func extractValidMulCommands(input string) string {
+	var result []string
+	disabledStrings := strings.Split(input, "don't()")
+
+	// inital string before first disable call is implicitly enabled
+	result = append(result, disabledStrings[0])
+
+	// process the remaining sub strings beginning with disable call
+	for _, segment := range disabledStrings[1:] {
+		// for each sub string beginning with disable call, find and jump to the first enable call
+		enabledStrings := strings.Split(segment, "do()")
+
+		// ignore element 0 as the selection of the disable call
+		// regardless of number of elements, they are all enabled
+		result = append(result, enabledStrings[1:]...)
+	}
+	return strings.Join(result, "")
 }
 
 func extractMulCommands(input string) []string {
