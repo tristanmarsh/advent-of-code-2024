@@ -94,7 +94,6 @@ func getAllCharCoords(target string, board Board) (results []Coords) {
 			}
 		}
 	}
-
 	return
 }
 
@@ -103,77 +102,6 @@ func wordMatchesFromCoords(word string, searchLocations []Coords, board Board) (
 		count += checkAllDirections(word, head, board)
 	}
 	return
-}
-
-func masMatchesFromCoords(searchLocations []Coords, board Board) (count int) {
-	for _, location := range searchLocations {
-		if checkMasNeighbours(location, board) {
-			count++
-		}
-	}
-	return count
-}
-
-var PointNeighbourMap = map[Direction]Coords{
-	NW: DirectionMap[NW],
-	NE: DirectionMap[NE],
-	SE: DirectionMap[SE],
-	SW: DirectionMap[SW],
-}
-
-// determine if 9 squares around "A" form one of 4 valid arrangments where both "M" chars are on one side.
-// Top       Right     Bottom   Left
-// [M]-[M]   S -[M]    S - S    [M]- S
-//  - A -    - A -     - A -     - A -
-//  S - S    S -[M]   [M]-[M]   [M]- S
-
-// Then check for the corresponding "S" on the adjacent side
-func checkMasNeighbours(location Coords, board Board) bool {
-	searchChars := []string{"M", "S"}
-	for _, point := range PointNeighbourMap {
-		neighbour := addCoords(location, point)
-		if !coordsAreValid(neighbour, board) {
-			return false
-		}
-		if !slices.Contains(searchChars, string(getBoardSquare(neighbour, board))) {
-			return false
-		}
-	}
-
-	nw := getBoardSquare(addCoords(location, PointNeighbourMap[NW]), board)
-	ne := getBoardSquare(addCoords(location, PointNeighbourMap[NE]), board)
-	se := getBoardSquare(addCoords(location, PointNeighbourMap[SE]), board)
-	sw := getBoardSquare(addCoords(location, PointNeighbourMap[SW]), board)
-
-	// top M bottom S
-	if nw == "M" && ne == "M" {
-		if sw == "S" && se == "S" {
-			return true
-		}
-	}
-
-	// right M left S
-	if nw == "S" && ne == "M" {
-		if sw == "S" && se == "M" {
-			return true
-		}
-	}
-
-	// bottom M top S
-	if nw == "S" && ne == "S" {
-		if sw == "M" && se == "M" {
-			return true
-		}
-	}
-
-	// left M right S
-	if nw == "M" && ne == "S" {
-		if sw == "M" && se == "S" {
-			return true
-		}
-	}
-
-	return false
 }
 
 type Direction = int
@@ -220,6 +148,47 @@ func directionContainsWord(word string, head Coords, directionMapCoords Coords, 
 		coords = addCoords(coords, directionMapCoords)
 	}
 	return true
+}
+
+func masMatchesFromCoords(searchLocations []Coords, board Board) (count int) {
+	for _, location := range searchLocations {
+		if hasMasCrossWord(location, board) {
+			count++
+		}
+	}
+	return count
+}
+
+var PointNeighbourMap = map[Direction]Coords{
+	NW: DirectionMap[NW],
+	NE: DirectionMap[NE],
+	SE: DirectionMap[SE],
+	SW: DirectionMap[SW],
+}
+
+// An "A" square is a valid X-"MAS" if it is one of the 4 valid arrangements:
+//
+// Top       Right     Bottom   Left
+// [M]-[M]   S -[M]    S - S    [M]- S
+//  - A -    - A -     - A -     - A -
+//  S - S    S -[M]   [M]-[M]   [M]- S
+//
+// 2 "M" and 2 "S" chars found in opposing cardinal directions.
+
+// Combing 4 squares sequentially from any point in either direction results in 1 of 4 valid strings
+// MMSS, MSSM, SMMS, SSMM
+func hasMasCrossWord(center Coords, board Board) bool {
+	validStrings := []string{"MMSS", "MSSM", "SSMM", "SMMS"}
+	var points []string
+
+	for _, point := range PointNeighbourMap {
+		pointCoords := addCoords(center, point)
+		if coordsAreValid(pointCoords, board) {
+			points = append(points, string(getBoardSquare(pointCoords, board)))
+		}
+	}
+
+	return slices.Contains(validStrings, strings.Join(points, ""))
 }
 
 func addCoords(current Coords, directionCoords Coords) (next Coords) {
