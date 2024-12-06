@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -26,13 +27,21 @@ func part1() {
 	fmt.Println("Part 1")
 	data := loadInputFile()
 	board := makeBoard(data)
+	// begin search from "X" squares
 	xCoords := getAllCharCoords("X", board)
-	count := searchInitialHints("XMAS", xCoords, board)
+	count := wordMatchesFromCoords("XMAS", xCoords, board)
 	fmt.Println(count)
 }
 
+// Search for and count the number of diagonal "MAS" which cross intersect at A forming an X
 func part2() {
 	fmt.Println("Part 2")
+	data := loadInputFile()
+	board := makeBoard(data)
+	// begin search from "A" squares
+	aCoords := getAllCharCoords("A", board)
+	count := masMatchesFromCoords(aCoords, board)
+	fmt.Println(count)
 }
 
 func loadInputFile() string {
@@ -89,11 +98,82 @@ func getAllCharCoords(target string, board Board) (results []Coords) {
 	return
 }
 
-func searchInitialHints(word string, searchLocations []Coords, board Board) (count int) {
+func wordMatchesFromCoords(word string, searchLocations []Coords, board Board) (count int) {
 	for _, head := range searchLocations {
 		count += checkAllDirections(word, head, board)
 	}
 	return
+}
+
+func masMatchesFromCoords(searchLocations []Coords, board Board) (count int) {
+	for _, location := range searchLocations {
+		if checkMasNeighbours(location, board) {
+			count++
+		}
+	}
+	return count
+}
+
+var PointNeighbourMap = map[Direction]Coords{
+	NW: DirectionMap[NW],
+	NE: DirectionMap[NE],
+	SE: DirectionMap[SE],
+	SW: DirectionMap[SW],
+}
+
+// determine if 9 squares around "A" form one of 4 valid arrangments where both "M" chars are on one side.
+// Top       Right     Bottom   Left
+// [M]-[M]   S -[M]    S - S    [M]- S
+//  - A -    - A -     - A -     - A -
+//  S - S    S -[M]   [M]-[M]   [M]- S
+
+// Then check for the corresponding "S" on the adjacent side
+func checkMasNeighbours(location Coords, board Board) bool {
+	searchChars := []string{"M", "S"}
+	for _, point := range PointNeighbourMap {
+		neighbour := addCoords(location, point)
+		if !coordsAreValid(neighbour, board) {
+			return false
+		}
+		if !slices.Contains(searchChars, string(getBoardSquare(neighbour, board))) {
+			return false
+		}
+	}
+
+	nw := getBoardSquare(addCoords(location, PointNeighbourMap[NW]), board)
+	ne := getBoardSquare(addCoords(location, PointNeighbourMap[NE]), board)
+	se := getBoardSquare(addCoords(location, PointNeighbourMap[SE]), board)
+	sw := getBoardSquare(addCoords(location, PointNeighbourMap[SW]), board)
+
+	// top M bottom S
+	if nw == "M" && ne == "M" {
+		if sw == "S" && se == "S" {
+			return true
+		}
+	}
+
+	// right M left S
+	if nw == "S" && ne == "M" {
+		if sw == "S" && se == "M" {
+			return true
+		}
+	}
+
+	// bottom M top S
+	if nw == "S" && ne == "S" {
+		if sw == "M" && se == "M" {
+			return true
+		}
+	}
+
+	// left M right S
+	if nw == "M" && ne == "S" {
+		if sw == "M" && se == "S" {
+			return true
+		}
+	}
+
+	return false
 }
 
 type Direction = int
@@ -137,12 +217,12 @@ func directionContainsWord(word string, head Coords, directionMapCoords Coords, 
 		if !coordsAreValid(coords, board) || string(getBoardSquare(coords, board)) != char {
 			return false
 		}
-		coords = getNextCoords(coords, directionMapCoords)
+		coords = addCoords(coords, directionMapCoords)
 	}
 	return true
 }
 
-func getNextCoords(current Coords, directionCoords Coords) (next Coords) {
+func addCoords(current Coords, directionCoords Coords) (next Coords) {
 	next.x = current.x + directionCoords.x
 	next.y = current.y + directionCoords.y
 
