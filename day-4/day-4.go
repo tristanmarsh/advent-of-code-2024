@@ -98,6 +98,7 @@ func searchInitialHints(word string, searchLocations []Coords, board Board) (cou
 
 type Direction = int
 
+// Directions for word detection
 const (
 	N = iota
 	NE
@@ -133,10 +134,8 @@ func checkAllDirections(word string, head Coords, board Board) (count int) {
 func directionContainsWord(word string, head Coords, directionMapCoords Coords, board Board) bool {
 	var coords = head
 	for _, char := range strings.Split(word, "") {
-		if coordsAreValid(coords, board) {
-			if string(getBoardSquare(coords, board)) != char {
-				return false
-			}
+		if !coordsAreValid(coords, board) || string(getBoardSquare(coords, board)) != char {
+			return false
 		}
 		coords = getNextCoords(coords, directionMapCoords)
 	}
@@ -151,18 +150,9 @@ func getNextCoords(current Coords, directionCoords Coords) (next Coords) {
 }
 
 func coordsAreValid(coords Coords, board Board) bool {
-	return coords.x > 0 || coords.x < board.width || coords.y > 0 || coords.y < board.height
+	return coords.x >= 0 && coords.x < board.width && coords.y >= 0 && coords.y < board.height
 }
 
 func getBoardSquare(coords Coords, board Board) (square Square) {
-	for y, line := range board.lines {
-		if y == coords.y {
-			for x, s := range line {
-				if x == coords.x {
-					square = s
-				}
-			}
-		}
-	}
-	return
+	return board.lines[coords.y][coords.x]
 }
